@@ -16,6 +16,7 @@ export const icons = {
   ok: '✅',
   err: '❌',
   warn: '⚠️',
+  info: 'ℹ️',
   pkg: '📦',
   save: '💾',
   link: '🔗',
@@ -28,21 +29,30 @@ export const icons = {
  * @param {string} msg
  */
 export function success(msg) {
-  console.log(`${icons.ok} ${msg}`);
+  console.log(`${icons.ok} ${chalk.green(msg)}`);
 }
 
 /**
  * @param {string} msg
  */
 export function errorLine(msg) {
-  console.error(`${icons.err} ${msg}`);
+  console.error(`${icons.err} ${chalk.red.bold(msg)}`);
 }
 
 /**
+ * Destructive or high-attention warning (yellow + bold in terminals that support it).
  * @param {string} msg
  */
 export function warnLine(msg) {
-  console.error(`${icons.warn} ${msg}`);
+  console.error(`${icons.warn} ${chalk.yellow.bold(msg)}`);
+}
+
+/**
+ * Secondary explanation after a warning (dim; does not imply an error).
+ * @param {string} msg
+ */
+export function noteLine(msg) {
+  console.log(`${icons.info} ${chalk.dim(msg)}`);
 }
 
 /**

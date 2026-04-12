@@ -143,7 +143,7 @@ export async function runExport(globalOpts, cmdOpts) {
 
   if (/[!@#$%]/.test(parsed.password)) {
     ui.warnLine(
-      `${ui.icons.warn} Password contains special characters — encoded for connection. Verify if connection fails.`
+      'Password contains special characters — encoded for connection. Verify if connection fails.'
     );
   }
 
@@ -190,6 +190,6 @@ export async function runExport(globalOpts, cmdOpts) {
 
   const st = statSync(filePath);
   const compLabel = compress ? `gzip (level ${level})` : 'none';
-  ui.success(`${ui.icons.ok} Exported to: ${filePath}`);
+  ui.success(`Exported to: ${filePath}`);
   ui.infoLine(`${ui.icons.chart} Size: ${formatBytes(st.size)} | Compression: ${compLabel}`);
 }

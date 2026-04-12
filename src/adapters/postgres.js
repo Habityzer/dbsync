@@ -17,6 +17,10 @@ export function pgConnectionEnv(parsed) {
   if (parsed.port) env.PGPORT = String(parsed.port);
   const ssl = parsed.url.searchParams.get('sslmode');
   if (ssl) env.PGSSLMODE = ssl;
+  // libpq may prefer DATABASE_URL over PG* vars; Symfony/Doctrine URIs often
+  // include ?serverVersion=… which psql rejects. CLI always uses explicit -h/-U/-d.
+  delete env.DATABASE_URL;
+  delete env.POSTGRES_URL;
   return env;
 }
 
@@ -28,6 +32,8 @@ export function buildPgDumpArgs(parsed, opts = {}) {
   const args = ['-h', parsed.host, '-U', parsed.user];
   if (parsed.port) args.push('-p', String(parsed.port));
   args.push('-d', parsed.database);
+  // Portable dumps: avoid source-only roles and ACLs so restores work on other clusters.
+  args.push('--no-owner', '--no-acl');
   if (opts.schemaOnly) args.push('--schema-only');
   if (opts.dataOnly) args.push('--data-only');
   if (opts.tables?.length) {
@@ -111,7 +117,8 @@ export function spawnPsqlRestore(parsed, opts = {}) {
     PGDATABASE: admin ? 'postgres' : parsed.database,
   };
   const child = spawn('psql', args, {
-    stdio: ['pipe', 'pipe', 'pipe'],
+    // Discard stdout: unread pipe buffers can fill and block psql during large restores.
+    stdio: ['pipe', 'ignore', 'pipe'],
     env,
   });
   return child;
@@ -119,24 +126,42 @@ export function spawnPsqlRestore(parsed, opts = {}) {
 
 /**
  * Drop and recreate database (connect to postgres).
+ * psql runs all statements in a single `-c "…;…;…"` inside one transaction;
+ * DROP DATABASE / CREATE DATABASE are not allowed in a transaction block, so each step is a separate invocation.
  * @param {import('../utils/url-parser.js').ParsedDatabaseUrl} parsed
  */
 export async function dropPostgresDatabase(parsed) {
   const dbId = quoteIdent(parsed.database);
-  const sql = `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = ${literal(parsed.database)} AND pid <> pg_backend_pid(); DROP DATABASE IF EXISTS ${dbId}; CREATE DATABASE ${dbId};`;
+  const dbLit = literal(parsed.database);
   const env = { ...pgConnectionEnv(parsed), PGDATABASE: 'postgres' };
-  const child = spawn('psql', [...buildPsqlArgs(parsed, true), '-c', sql], {
-    stdio: ['ignore', 'pipe', 'pipe'],
-    env,
-  });
-  let err = '';
-  child.stderr?.on('data', (c) => {
-    err += c.toString();
-  });
-  const [code] = await once(child, 'close');
-  if (code !== 0) {
-    throw new AppError('Failed to drop/recreate database', { suggestion: err.trim() });
+  const psqlArgsBase = buildPsqlArgs(parsed, true);
+
+  /**
+   * @param {string} sql
+   * @param {string} [stepLabel]
+   */
+  async function runPsql(sql, stepLabel = '') {
+    const child = spawn('psql', [...psqlArgsBase, '-c', sql], {
+      stdio: ['ignore', 'ignore', 'pipe'],
+      env,
+    });
+    let err = '';
+    child.stderr?.on('data', (c) => {
+      err += c.toString();
+    });
+    const [code] = await once(child, 'close');
+    if (code !== 0) {
+      const hint = [stepLabel && `${stepLabel}: `, err.trim()].filter(Boolean).join('');
+      throw new AppError('Failed to drop/recreate database', { suggestion: hint || undefined });
+    }
   }
+
+  await runPsql(
+    `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = ${dbLit} AND pid <> pg_backend_pid();`,
+    'terminate backends'
+  );
+  await runPsql(`DROP DATABASE IF EXISTS ${dbId};`, 'DROP DATABASE');
+  await runPsql(`CREATE DATABASE ${dbId};`, 'CREATE DATABASE');
 }
 
 function quoteIdent(name) {

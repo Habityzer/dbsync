@@ -7,10 +7,12 @@ import { AppError } from '../utils/errors.js';
  * @param {import('../utils/url-parser.js').ParsedDatabaseUrl} parsed
  */
 export function mysqlConnectionEnv(parsed) {
-  return {
+  const env = {
     ...process.env,
     MYSQL_PWD: parsed.password,
   };
+  delete env.DATABASE_URL;
+  return env;
 }
 
 /**
@@ -82,7 +84,7 @@ export function spawnMysqldump(parsed, opts = {}) {
 export function spawnMysqlRestore(parsed) {
   const args = buildMysqlArgs(parsed);
   const child = spawn('mysql', args, {
-    stdio: ['pipe', 'pipe', 'pipe'],
+    stdio: ['pipe', 'ignore', 'pipe'],
     env: mysqlConnectionEnv(parsed),
   });
   return child;

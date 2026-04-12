@@ -15,7 +15,7 @@ export async function runTest(globalOpts) {
 
   if (/[!@#$%]/.test(parsed.password)) {
     ui.warnLine(
-      `${ui.icons.warn} Password contains special characters — auto-encoded for URL parsing; verify connection if it fails.`
+      'Password contains special characters — auto-encoded for URL parsing; verify connection if it fails.'
     );
   }
 
@@ -25,5 +25,5 @@ export async function runTest(globalOpts) {
     await testMysqlConnection(parsed);
   }
 
-  ui.success(`${ui.icons.ok} Connection OK`);
+  ui.success('Connection OK');
 }

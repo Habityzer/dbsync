@@ -40,7 +40,7 @@ export async function runClean(globalOpts, cmdOpts) {
   });
 
   if (remove.length === 0) {
-    ui.success(`${ui.icons.ok} Nothing to clean`);
+    ui.success('Nothing to clean');
     return;
   }
 
@@ -64,5 +64,5 @@ export async function runClean(globalOpts, cmdOpts) {
       ui.warnLine(`Could not delete ${e.path}: ${err instanceof Error ? err.message : err}`);
     }
   }
-  ui.success(`${ui.icons.ok} Clean complete`);
+  ui.success('Clean complete');
 }

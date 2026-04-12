@@ -29,7 +29,7 @@ export async function runList(globalOpts, cmdOpts) {
       ? new Date(String(cmdOpts.since).includes('T') ? cmdOpts.since : `${cmdOpts.since}T00:00:00`)
       : undefined;
   if (since && Number.isNaN(since.getTime())) {
-    ui.warnLine(`${ui.icons.warn} Ignoring invalid --since date: ${cmdOpts.since}`);
+    ui.warnLine(`Ignoring invalid --since date: ${cmdOpts.since}`);
     since = undefined;
   }
   entries = filterBackups(entries, {
