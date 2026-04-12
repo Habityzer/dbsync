@@ -188,3 +188,34 @@ export function parseDatabaseUrl(rawUrl) {
     url,
   };
 }
+
+/**
+ * Use `admin` login (user/password) while keeping the same server and database
+ * name as `target`. Use when DATABASE_URL is an app role but drop/recreate needs
+ * a superuser (PostgreSQL) or privileged account (MySQL).
+ *
+ * @param {ParsedDatabaseUrl} target
+ * @param {ParsedDatabaseUrl} admin
+ * @returns {ParsedDatabaseUrl}
+ */
+export function withAdminCredentials(target, admin) {
+  if (target.type !== admin.type) {
+    throw new ConfigError(
+      'Admin URL must use the same scheme as DATABASE_URL',
+      'Use postgres:// with postgres://, or mysql:// with mysql://'
+    );
+  }
+  const defPort = target.type === 'postgres' ? 5432 : 3306;
+  const tp = target.port ?? defPort;
+  const ap = admin.port ?? defPort;
+  if (target.host !== admin.host || tp !== ap) {
+    throw new ConfigError(
+      'Admin URL must use the same host and port as DATABASE_URL',
+      'Example: DBSYNC_ADMIN_URL=postgres://postgres:…@127.0.0.1:5434/postgres with DATABASE_URL on the same 127.0.0.1:5434'
+    );
+  }
+  const u = new URL(target.hrefForTools);
+  u.username = admin.user;
+  u.password = admin.password;
+  return parseDatabaseUrl(u.toString());
+}

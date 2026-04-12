@@ -5,7 +5,7 @@ import { pipeline } from 'node:stream/promises';
 import { once } from 'node:events';
 import { loadEnvFile } from '../utils/env-loader.js';
 import { loadConfig, mergeWithCli } from '../utils/config-loader.js';
-import { parseDatabaseUrl } from '../utils/url-parser.js';
+import { parseDatabaseUrl, withAdminCredentials } from '../utils/url-parser.js';
 import { createDecompressStream } from '../utils/compression.js';
 import { createFileProgressBar, formatBytes } from '../utils/progress.js';
 import { validateBackupFile } from '../utils/backup-validate.js';
@@ -39,6 +39,14 @@ export async function runRestore(globalOpts, cmdOpts, fileArg) {
 
   const envVar = globalOpts.envVar || 'DATABASE_URL';
   const parsed = parseDatabaseUrl(process.env[envVar]);
+
+  const adminUrlRaw = [
+    globalOpts.adminUrl,
+    process.env.DBSYNC_ADMIN_URL,
+    process.env.DATABASE_ADMIN_URL,
+    merged.adminUrl,
+  ]
+    .find((v) => v != null && String(v).trim() !== '');
 
   let filePath = fileArg ? resolveBackupPath(fileArg, backupDir) : null;
 
@@ -117,9 +125,25 @@ export async function runRestore(globalOpts, cmdOpts, fileArg) {
   if (dropBefore) {
     ui.warnLine('Dropping and recreating database...');
     if (parsed.type === 'postgres') {
-      await dropPostgresDatabase(parsed);
+      let dropConn = parsed;
+      if (adminUrlRaw) {
+        const adminParsed = parseDatabaseUrl(String(adminUrlRaw).trim());
+        dropConn = withAdminCredentials(parsed, adminParsed);
+        ui.noteLine(
+          'Using admin URL credentials for drop/recreate (same host:port as DATABASE_URL).'
+        );
+      }
+      await dropPostgresDatabase(dropConn);
     } else {
-      await dropMysqlDatabase(parsed);
+      let dropConn = parsed;
+      if (adminUrlRaw) {
+        const adminParsed = parseDatabaseUrl(String(adminUrlRaw).trim());
+        dropConn = withAdminCredentials(parsed, adminParsed);
+        ui.noteLine(
+          'Using admin URL credentials for drop/recreate (same host:port as DATABASE_URL).'
+        );
+      }
+      await dropMysqlDatabase(dropConn);
     }
   }
 
