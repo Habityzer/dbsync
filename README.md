@@ -11,12 +11,12 @@ CLI for backing up and restoring **PostgreSQL** and **MySQL** databases with `.e
 ## Install
 
 ```bash
-pnpm add -g db-sync-tool
+pnpm add -g @habityzer/db-sync-tool
 # or
-pnpm dlx db-sync-tool --help
+pnpm dlx @habityzer/db-sync-tool --help
 ```
 
-The executable is **`dbsync`**.
+The executable is **`dbsync`**. The package is published under the **Habityzer** org on npm (`@habityzer/…`).
 
 ## Configuration
 
