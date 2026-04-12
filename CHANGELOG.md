@@ -1,3 +1,10 @@
+## [1.0.4](https://github.com/Habityzer/dbsync/compare/v1.0.3...v1.0.4) (2026-04-12)
+
+
+### Bug Fixes
+
+* update README with installation instructions and set executable bit for dbsync ([0387d32](https://github.com/Habityzer/dbsync/commit/0387d328d24ff5b226475e176094dfd97ac1af73))
+
 ## [1.0.3](https://github.com/Habityzer/dbsync/compare/v1.0.2...v1.0.3) (2026-04-12)
 
 
