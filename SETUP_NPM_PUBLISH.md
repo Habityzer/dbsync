@@ -1,149 +1,94 @@
 # Setting Up Automated NPM Publishing
 
-This project uses GitHub Actions with [semantic-release](https://semantic-release.gitbook.io/) (via [`cycjimmy/semantic-release-action@v6`](https://github.com/cycjimmy/semantic-release-action)) to automatically publish to npm when you push to **`main`** or **`master`**.
+This project uses GitHub Actions with [semantic-release](https://semantic-release.gitbook.io/) (via [`cycjimmy/semantic-release-action@v6`](https://github.com/cycjimmy/semantic-release-action)) to publish to npm on push to **`main`** or **`master`**.
 
-## Setup Instructions
+## Recommended: npm Trusted Publishing (OIDC)
 
-### 1. Create NPM Access Token
+This is the **default** for this repo. It uses short-lived OpenID Connect credentials from GitHub Actions instead of a long-lived **`NPM_TOKEN`**, so you avoid **EOTP**, token rotation, and leaked publish tokens.
 
-> **Important**: As of December 9, 2025, npm classic tokens have been permanently revoked. You must use **granular access tokens** for CI/CD workflows.
+### Requirements
 
-**Option A: Using npm CLI (recommended):**
-```bash
-npm token create --type automation
-```
+- Workflow file **`.github/workflows/publish.yml`** (exact filename — npm matches this string).
+- GitHub-hosted runners (not self-hosted).
+- **`id-token: write`** on the job (already set in this repo).
+- **`package.json`** `repository.url` must match this GitHub repo (see [npm docs](https://docs.npmjs.com/trusted-publishers/)).
+- npm CLI **≥ 11.5.1** in CI (the workflow upgrades npm before release).
 
-For the **first automated publish**, granular tokens often cannot target a package name that does not exist on npm yet. In that case choose **All packages** (read and write) for the token, publish once from CI, then you can narrow the token to **`db-sync-tool`** only. If the package already exists under your npm user, you can restrict the token to **`db-sync-tool`** from the start.
+### One-time setup on npmjs.com
 
-**Option B: Using the web interface:**
-1. Go to [npmjs.com/settings/~/tokens](https://www.npmjs.com/settings/~/tokens) and log in
-2. Click **Generate New Token** → **Granular Access Token**
-3. Configure your token:
-   - **Token name**: `github-actions-dbsync` (or any descriptive name)
-   - **Expiration**: Up to 90 days (maximum for publish tokens)
-   - **Packages and scopes**: Select **`db-sync-tool`** (or **All packages** if you prefer)
-   - **Permissions**: Select **Read and write**
-   - ✅ **Enable "Bypass 2FA"** for automated workflows
-4. Click **Generate Token**
-5. Copy the token (starts with `npm_...`)
+1. Open **[db-sync-tool → Package settings](https://www.npmjs.com/package/db-sync-tool/access)** (or create the package first under your npm account).
+2. Find **Trusted publishing** and choose **GitHub Actions**.
+3. Set:
+   - **Repository**: `Habityzer/dbsync` (owner/repo, case-sensitive).
+   - **Workflow filename**: `publish.yml` (only the name, with `.yml`).
+4. Save.
 
-> **Note**: Granular tokens for publishing expire after a maximum of 90 days. Set a reminder to regenerate the token before expiration.
+After this works, you can **remove** any **`NPM_TOKEN`** repository secret — it is no longer needed for publish.
 
-### 2. Add NPM Token to GitHub
+### Private npm dependencies (optional)
 
-The workflow reads **`secrets.NPM_TOKEN`** only. The name must match **exactly** (`NPM_TOKEN`).
+Trusted publishing only authenticates **`npm publish`**. If you later add **private** packages, use a **read-only** granular token for `pnpm install` only (see [npm docs](https://docs.npmjs.com/trusted-publishers/#handling-private-dependencies)).
 
-#### Option A — Repository secret (simplest)
+---
 
-1. Open **https://github.com/Habityzer/dbsync** → **Settings** → **Secrets and variables** → **Actions**
-2. Under **Repository secrets**, click **New repository secret**
-3. **Name:** `NPM_TOKEN`  
-4. **Value:** paste the token from step 1 (starts with `npm_`)
-5. Save, then **re-run** the failed workflow (or push again)
+## Legacy: automation token (fallback)
 
-#### Option B — Organization secret
+Use this only if Trusted Publishing is **not** configured yet, or while migrating.
 
-If the token lives under **Organization** → **Settings** → **Secrets and variables** → **Actions**:
+1. Create a granular **Automation** token: `npm token create --type automation`, or on the website choose **Automation** (not Publish-only — Publish-only causes **`EOTP`** in CI).
+2. Add **`NPM_TOKEN`** in GitHub → **Settings** → **Secrets and variables** → **Actions**.
+3. **`@semantic-release/npm`** tries OIDC first; if the npm exchange succeeds, the secret is ignored. If not, it falls back to **`NPM_TOKEN`**.
 
-- Edit that org secret and ensure **Repository access** includes **`Habityzer/dbsync`** (or “All repositories”).
-- The secret name exposed to the workflow must still be **`NPM_TOKEN`** (or you would need to change the workflow to match — this repo expects **`NPM_TOKEN`**).
+---
 
-#### Option C — Environment secret
+## How it works
 
-If `NPM_TOKEN` is stored on a **GitHub Environment** (e.g. `production`), it is **not** available to the job unless you declare that environment on the job.
+The workflow (`.github/workflows/publish.yml`):
 
-1. In `.github/workflows/publish.yml`, on the `release` job, add:
-
-   ```yaml
-   environment: npm
-   ```
-
-   Use the **same** environment name where you created `NPM_TOKEN` (replace `npm` if yours differs).
-
-2. Commit and push, or re-run the workflow.
-
-### 3. How It Works
-
-The workflow (`.github/workflows/publish.yml`) will:
-
-1. **Trigger**: Automatically runs when you push to **`main`** or **`master`**
-2. **Analyze**: Semantic-release reads your commit messages (following conventional commits)
-3. **Version**: Automatically bumps the version based on your commits:
-   - `feat:` → minor version (1.0.0 → 1.1.0)
-   - `fix:` → patch version (1.0.0 → 1.0.1)
-   - `BREAKING CHANGE:` → major version (1.0.0 → 2.0.0)
+1. **Trigger**: Push to **`main`** or **`master`**
+2. **Analyze**: Conventional commits via semantic-release
+3. **Version**: Bumps semver from commits (`feat` → minor, `fix` → patch, etc.)
 4. **Changelog**: Updates `CHANGELOG.md`
-5. **Git Tag**: Creates a git tag for the new version
-6. **Publish**: Publishes to npm
-7. **Commit**: Commits the changelog and version bump back to your repo
+5. **Publish**: npm (OIDC preferred, token fallback)
+6. **Git / GitHub**: Tag, changelog commit, GitHub release
 
-Releases run only in CI (not via a local `pnpm release` script).
+---
 
-### 4. Commit Message Format
-
-Use conventional commits for automatic versioning:
+## Commit message format
 
 ```bash
-# Patch release (1.0.0 → 1.0.1)
-git commit -m "fix: resolve backup path bug"
-
-# Minor release (1.0.0 → 1.1.0)
-git commit -m "feat: add retention option"
-
-# Major release (1.0.0 → 2.0.0)
-git commit -m "feat: redesign CLI
-
-BREAKING CHANGE: command flags have changed"
-
-# No release (documentation, etc.)
-git commit -m "docs: update README"
-git commit -m "chore: update dependencies"
+git commit -m "fix: resolve backup path bug"   # patch
+git commit -m "feat: add retention option"     # minor
+# major: include BREAKING CHANGE in body
 ```
+
+---
 
 ## Troubleshooting
 
-### "No NPM_TOKEN found"
-- Make sure you've added `NPM_TOKEN` as a GitHub secret
-- Check that the secret name is exactly `NPM_TOKEN` (case-sensitive)
+### `Unable to authenticate` / OIDC / `ENEEDAUTH`
 
-### "No release published"
-- Check your commit messages follow conventional commits format
-- Semantic-release only publishes if there are releasable commits
-- View the GitHub Actions logs for details
+- On npm, confirm **Trusted publishing** matches **`Habityzer/dbsync`** and workflow name **`publish.yml`** (case-sensitive).
+- Confirm **`package.json`** `repository.url` is **`git+https://github.com/Habityzer/dbsync.git`**.
+- Re-run uses the same checks; fix the npm/GitHub link, not only the workflow.
 
-### "Invalid npm token" / `SemanticReleaseError: Invalid npm token`
+### `npm error code EOTP`
 
-This comes from npm’s auth check (`npm whoami`) before publish. Fix it on the npm + GitHub side (the workflow is already passing `NPM_TOKEN` / `NODE_AUTH_TOKEN`).
+You are on **legacy token** path with a **non-Automation** token. Prefer **Trusted Publishing** above, or replace the secret with an **Automation** granular token.
 
-1. **Secret value** — In the repo (or org) **Settings → Secrets and variables → Actions**, open `NPM_TOKEN` and replace it with a **new** granular token. Typos, extra spaces, or an old classic token will fail.
+### `ENONPMTOKEN` / `Invalid npm token`
 
-2. **Same npm account as the package** — The token must belong to the npm user (or org) that is allowed to publish **`db-sync-tool`**. If the name is owned by someone else, publishing will fail until you use another package name or get access.
+- Enable Trusted Publishing on npm **or** set a valid **`NPM_TOKEN`**.
+- Ensure **`@semantic-release/npm@^13.1.3`** (already pinned in the workflow `extra_plugins`).
 
-3. **Granular token + first publish** — You often **cannot** pick a not-yet-published package in the UI. Use **All packages** with **Read and write** and **Bypass 2FA** for the first release, then tighten the token to `db-sync-tool` if you want.
+### Organization / secrets
 
-4. **Organization / Habityzer** — If `NPM_TOKEN` is an **organization** secret, confirm this repository is **allowed** to use it. If it’s only a **repository** secret, it must be defined on **`Habityzer/dbsync`**, not only on another repo.
+If **`NPM_TOKEN`** is an org secret, grant this repository access. Environment secrets require `environment: …` on the job in **`publish.yml`**.
 
-5. **Verify locally** (optional):
-   ```bash
-   NPM_TOKEN=npm_xxxxx npm whoami --registry https://registry.npmjs.org/
-   ```
-   You should see your npm username. If this fails, fix the token before pushing again.
+---
 
-6. **Expiry** — Granular publish tokens can expire (often within 90 days). Generate a new one and update the GitHub secret.
+## Additional resources
 
-### "Package already published"
-- Semantic-release automatically handles versions
-- If you manually published the same version, semantic-release will skip it
-
-## Current Configuration
-
-- **Branches**: `main` and `master` (see `.releaserc.json` and `.github/workflows/publish.yml` `on.push.branches`)
-- **Package**: `db-sync-tool`
-- **Workflow**: `.github/workflows/publish.yml`
-- **NPM Publish**: Enabled (set in `.releaserc.json`)
-
-## Additional Resources
-
-- [npm Granular Access Tokens Documentation](https://docs.npmjs.com/about-access-tokens#granular-access-tokens)
-- [Semantic Release Documentation](https://semantic-release.gitbook.io/)
-- [Conventional Commits](https://www.conventionalcommits.org/)
+- [Trusted publishing (npm)](https://docs.npmjs.com/trusted-publishers/)
+- [Semantic release](https://semantic-release.gitbook.io/)
+- [Conventional commits](https://www.conventionalcommits.org/)
