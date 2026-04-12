@@ -1,6 +1,6 @@
 {
   "name": "db-sync-tool",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "CLI for backing up and restoring PostgreSQL/MySQL databases with .env support, compression, and retention",
   "type": "module",
   "bin": {

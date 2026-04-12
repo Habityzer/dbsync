@@ -1,3 +1,12 @@
+## [1.0.3](https://github.com/Habityzer/dbsync/compare/v1.0.2...v1.0.3) (2026-04-12)
+
+
+### Bug Fixes
+
+* **deps:** update dependency commander to v14 ([7740ca1](https://github.com/Habityzer/dbsync/commit/7740ca1983380ee69e7f09a416f49505a86357f6))
+* **deps:** update dependency dotenv to v17 ([6a5904e](https://github.com/Habityzer/dbsync/commit/6a5904ef781c55dc416fb4648fd3609dd853c89f))
+* **deps:** update dependency ora to v9 ([8e94880](https://github.com/Habityzer/dbsync/commit/8e948809f04f2bd20c2e2d546366f5d464d95459))
+
 ## [1.0.2](https://github.com/Habityzer/dbsync/compare/v1.0.1...v1.0.2) (2026-04-12)
 
 ## [1.0.1](https://github.com/Habityzer/dbsync/compare/v1.0.0...v1.0.1) (2026-04-12)
