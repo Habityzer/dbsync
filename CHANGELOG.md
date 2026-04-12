@@ -1,3 +1,10 @@
+## [1.0.5](https://github.com/Habityzer/dbsync/compare/v1.0.4...v1.0.5) (2026-04-12)
+
+
+### Bug Fixes
+
+* Package name ([9d330df](https://github.com/Habityzer/dbsync/commit/9d330df76593f8c894668c39baa15bf1970180c1))
+
 ## [1.0.4](https://github.com/Habityzer/dbsync/compare/v1.0.3...v1.0.4) (2026-04-12)
 
 
