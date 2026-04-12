@@ -76,9 +76,12 @@ Override path: `--config <path>`.
 
 ### Restore
 
-- `--drop-before` — drop & recreate database first
+By default the target database is **dropped and recreated**, then the backup is applied. The CLI prints this plan before asking for confirmation.
+
+- `--no-drop-before` — import into the existing database without dropping it (advanced)
+- PostgreSQL: **owner/privilege lines** in plain SQL dumps are skipped by default (portable restores). Use `--preserve-privileges` only if you need exact ACLs and matching roles on the server.
+- `-y, --yes` or `--force` — skip the confirmation prompt (same meaning)
 - `--dry-run` — validate backup (full gzip stream check for `.gz`)
-- `--force` — skip confirmation
 - `-i, --interactive` — pick backup from list
 - `-d, --database` — filter interactive list
 
@@ -98,7 +101,7 @@ Override path: `--config <path>`.
 dbsync export
 dbsync export -o ./backups --schema-only
 dbsync restore ./backups/app_20260410_120000.sql.gz
-dbsync restore -i --force
+dbsync restore -i -y
 dbsync list --database app --limit 5
 dbsync info ./backups/app_20260410_120000.sql.gz
 dbsync clean --keep-last 10 --dry-run

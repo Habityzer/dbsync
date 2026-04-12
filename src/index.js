@@ -61,9 +61,18 @@ export async function runCli(argv) {
     .command('restore')
     .description('Restore database from a backup file')
     .argument('[file]', 'Backup .sql or .sql.gz file')
-    .option('--drop-before', 'Drop and recreate database before restore', false)
+    .option(
+      '--no-drop-before',
+      'Do not drop the database; import into the current database (advanced)'
+    )
+    .option(
+      '--preserve-privileges',
+      'PostgreSQL: keep OWNER/GRANT/REVOKE lines (needs matching roles on the server)',
+      false
+    )
     .option('--dry-run', 'Validate backup without importing', false)
-    .option('--force', 'Skip confirmation prompts', false)
+    .option('-y, --yes', 'Answer yes to confirmation prompts (non-interactive)', false)
+    .option('--force', 'Same as --yes / -y', false)
     .option('-i, --interactive', 'Choose backup from list', false)
     .option('-d, --database <name>', 'Filter interactive list by database name')
     .action(async (file, opts, cmd) => {

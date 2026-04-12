@@ -15,6 +15,7 @@ import * as ui from '../utils/ui.js';
 import { confirm, ask } from '../utils/prompt.js';
 import { spawnPsqlRestore, dropPostgresDatabase } from '../adapters/postgres.js';
 import { spawnMysqlRestore, dropMysqlDatabase } from '../adapters/mysql.js';
+import { createPostgresPrivilegeStripTransform } from '../utils/sql-owner-strip.js';
 
 /**
  * @param {string} fileArg
@@ -48,7 +49,7 @@ export async function runRestore(globalOpts, cmdOpts, fileArg) {
     });
     if (entries.length === 0 && dbFilter) {
       ui.warnLine(
-        `${ui.icons.warn} No backups matched database filter; showing all backups.`
+        'No backups matched database filter; showing all backups.'
       );
       entries = scanBackups(backupDir);
     }
@@ -80,14 +81,32 @@ export async function runRestore(globalOpts, cmdOpts, fileArg) {
   const isGzip = filePath.endsWith('.gz');
   if (cmdOpts.dryRun) {
     await validateBackupFile(filePath, isGzip);
-    ui.success(`${ui.icons.ok} Backup file looks valid (dry-run)`);
+    ui.success('Backup file looks valid (dry-run)');
     return;
   }
 
-  if (!cmdOpts.force) {
+  const dropBefore = cmdOpts.noDropBefore !== true;
+  const skipConfirm = cmdOpts.yes === true || cmdOpts.force === true;
+  const stripPgPrivileges =
+    parsed.type === 'postgres' && cmdOpts.preservePrivileges !== true;
+
+  const dbLabel = parsed.database || 'default';
+  if (dropBefore) {
     ui.warnLine(
-      `${ui.icons.warn} Warning: This will overwrite current database '${parsed.database || 'default'}'`
+      `This will DROP and recreate database '${dbLabel}', then restore from the backup.`
     );
+    if (stripPgPrivileges) {
+      ui.noteLine(
+        'PostgreSQL: owner/privilege statements in the dump are skipped by default (cross-environment safe).'
+      );
+    }
+  } else {
+    ui.warnLine(
+      `This will import into the existing database '${dbLabel}' without dropping it first.`
+    );
+  }
+
+  if (!skipConfirm) {
     const ok = await confirm('Continue? (y/N): ');
     if (!ok) {
       ui.infoLine('Cancelled.');
@@ -95,8 +114,8 @@ export async function runRestore(globalOpts, cmdOpts, fileArg) {
     }
   }
 
-  if (cmdOpts.dropBefore) {
-    ui.infoLine(`${ui.icons.warn} Dropping and recreating database...`);
+  if (dropBefore) {
+    ui.warnLine('Dropping and recreating database...');
     if (parsed.type === 'postgres') {
       await dropPostgresDatabase(parsed);
     } else {
@@ -127,10 +146,24 @@ export async function runRestore(globalOpts, cmdOpts, fileArg) {
     stderr += c.toString();
   });
 
+  const privilegeStrip = stripPgPrivileges
+    ? createPostgresPrivilegeStripTransform({ stripGrants: true })
+    : null;
+
   const t0 = Date.now();
   const closePromise = once(child, 'close');
   try {
-    await pipeline(readStream, decompress, counter, child.stdin);
+    if (privilegeStrip) {
+      await pipeline(
+        readStream,
+        decompress,
+        privilegeStrip,
+        counter,
+        child.stdin
+      );
+    } else {
+      await pipeline(readStream, decompress, counter, child.stdin);
+    }
     const [code] = await closePromise;
     bar.stop();
     if (code !== 0) {
@@ -139,9 +172,38 @@ export async function runRestore(globalOpts, cmdOpts, fileArg) {
       });
     }
     const secs = ((Date.now() - t0) / 1000).toFixed(1);
-    ui.success(`${ui.icons.ok} Restore completed successfully (${secs}s)`);
+    ui.success(`Restore completed successfully (${secs}s)`);
   } catch (e) {
     bar.stop();
+    if (e instanceof AppError) {
+      throw e;
+    }
+    try {
+      await Promise.race([
+        closePromise,
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('timeout')), 10_000)
+        ),
+      ]);
+    } catch {
+      /* ignore */
+    }
+    const errText = stderr.trim();
+    if (errText) {
+      throw new AppError('Restore failed', { suggestion: errText });
+    }
+    const isEpipe =
+      (typeof e === 'object' &&
+        e !== null &&
+        'code' in e &&
+        /** @type {{ code?: string }} */ (e).code === 'EPIPE') ||
+      (e instanceof Error && /EPIPE/i.test(e.message));
+    if (isEpipe) {
+      throw new AppError('Restore failed: database client exited before the dump finished', {
+        suggestion:
+          'psql/mysql stopped early (often a SQL error). Re-run; if stderr stays empty, check client and server logs.',
+      });
+    }
     throw e;
   }
 }
