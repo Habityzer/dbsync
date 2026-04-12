@@ -12,7 +12,8 @@ This project uses GitHub Actions with [semantic-release](https://semantic-releas
 ```bash
 npm token create --type automation
 ```
-When prompted, restrict the token to the **`db-sync-tool`** package (read and write).
+
+For the **first automated publish**, granular tokens often cannot target a package name that does not exist on npm yet. In that case choose **All packages** (read and write) for the token, publish once from CI, then you can narrow the token to **`db-sync-tool`** only. If the package already exists under your npm user, you can restrict the token to **`db-sync-tool`** from the start.
 
 **Option B: Using the web interface:**
 1. Go to [npmjs.com/settings/~/tokens](https://www.npmjs.com/settings/~/tokens) and log in
@@ -86,11 +87,25 @@ git commit -m "chore: update dependencies"
 - Semantic-release only publishes if there are releasable commits
 - View the GitHub Actions logs for details
 
-### "Permission denied" or "Invalid npm token"
-- Ensure you're using a **granular access token** (not classic token)
-- Check that the token has **Read and write** permissions
-- Ensure **"Bypass 2FA"** is enabled for CI/CD workflows
-- Verify the token hasn't expired (granular tokens expire after max 90 days)
+### "Invalid npm token" / `SemanticReleaseError: Invalid npm token`
+
+This comes from npm’s auth check (`npm whoami`) before publish. Fix it on the npm + GitHub side (the workflow is already passing `NPM_TOKEN` / `NODE_AUTH_TOKEN`).
+
+1. **Secret value** — In the repo (or org) **Settings → Secrets and variables → Actions**, open `NPM_TOKEN` and replace it with a **new** granular token. Typos, extra spaces, or an old classic token will fail.
+
+2. **Same npm account as the package** — The token must belong to the npm user (or org) that is allowed to publish **`db-sync-tool`**. If the name is owned by someone else, publishing will fail until you use another package name or get access.
+
+3. **Granular token + first publish** — You often **cannot** pick a not-yet-published package in the UI. Use **All packages** with **Read and write** and **Bypass 2FA** for the first release, then tighten the token to `db-sync-tool` if you want.
+
+4. **Organization / Habityzer** — If `NPM_TOKEN` is an **organization** secret, confirm this repository is **allowed** to use it. If it’s only a **repository** secret, it must be defined on **`Habityzer/dbsync`**, not only on another repo.
+
+5. **Verify locally** (optional):
+   ```bash
+   NPM_TOKEN=npm_xxxxx npm whoami --registry https://registry.npmjs.org/
+   ```
+   You should see your npm username. If this fails, fix the token before pushing again.
+
+6. **Expiry** — Granular publish tokens can expire (often within 90 days). Generate a new one and update the GitHub secret.
 
 ### "Package already published"
 - Semantic-release automatically handles versions
