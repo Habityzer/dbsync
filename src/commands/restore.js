@@ -128,9 +128,10 @@ export async function runRestore(globalOpts, cmdOpts, fileArg) {
   });
 
   const t0 = Date.now();
+  const closePromise = once(child, 'close');
   try {
     await pipeline(readStream, decompress, counter, child.stdin);
-    const [code] = await once(child, 'close');
+    const [code] = await closePromise;
     bar.stop();
     if (code !== 0) {
       throw new AppError(`Restore process exited with code ${code}`, {

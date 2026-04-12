@@ -106,9 +106,12 @@ async function runDumpPipeline(parsed, dumpOpts, compressStream, writeStream, ct
   const counter = new PassThrough();
   counter.on('data', (chunk) => progress.increment(chunk.length));
 
+  // Subscribe before pipeline: if 'close' fires before we await, `once` would miss it and hang.
+  const closePromise = once(child, 'close');
+
   try {
     await pipeline(child.stdout, compressStream, counter, writeStream);
-    const [code] = await once(child, 'close');
+    const [code] = await closePromise;
     if (code !== 0) {
       progress.fail(`${ui.icons.err} Export failed`);
       throw new AppError(`Dump process exited with code ${code}`, {
