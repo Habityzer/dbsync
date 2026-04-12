@@ -13,7 +13,7 @@ CLI for backing up and restoring **PostgreSQL** and **MySQL** databases with `.e
 ```bash
 pnpm add -g db-sync-tool
 # or
-pnpm dlx db-sync-tool -- --help
+pnpm dlx db-sync-tool --help
 ```
 
 The executable is **`dbsync`**.
