@@ -6,9 +6,13 @@ on:
       - main
       - master
 
+# Requires secret NPM_TOKEN (granular npm access token). If the token is stored on a
+# GitHub Environment, add:  environment: <name>  to the job below so the secret is visible.
+
 jobs:
   release:
     runs-on: ubuntu-latest
+    # environment: npm   # uncomment if NPM_TOKEN is an Environment secret named on env "npm"
     permissions:
       contents: write
       issues: write
@@ -58,7 +62,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           if [ -z "$NODE_AUTH_TOKEN" ]; then
-            echo "::error::NPM_TOKEN is not set. Add a granular npm token: Settings → Secrets and variables → Actions → NPM_TOKEN"
+            echo "::error::secrets.NPM_TOKEN is empty for this job. Add a repository secret NPM_TOKEN on this repo, or grant org secret access, or set job.environment if the token is an Environment secret. See SETUP_NPM_PUBLISH.md."
             exit 1
           fi
           npm whoami --registry https://registry.npmjs.org/

@@ -31,12 +31,36 @@ For the **first automated publish**, granular tokens often cannot target a packa
 
 ### 2. Add NPM Token to GitHub
 
-1. Go to your GitHub repository: https://github.com/Habityzer/dbsync
-2. Navigate to **Settings** → **Secrets and variables** → **Actions**
-3. Click **New repository secret**
-4. Name: `NPM_TOKEN`
-5. Value: Paste your npm token from step 1
-6. Click **Add secret**
+The workflow reads **`secrets.NPM_TOKEN`** only. The name must match **exactly** (`NPM_TOKEN`).
+
+#### Option A — Repository secret (simplest)
+
+1. Open **https://github.com/Habityzer/dbsync** → **Settings** → **Secrets and variables** → **Actions**
+2. Under **Repository secrets**, click **New repository secret**
+3. **Name:** `NPM_TOKEN`  
+4. **Value:** paste the token from step 1 (starts with `npm_`)
+5. Save, then **re-run** the failed workflow (or push again)
+
+#### Option B — Organization secret
+
+If the token lives under **Organization** → **Settings** → **Secrets and variables** → **Actions**:
+
+- Edit that org secret and ensure **Repository access** includes **`Habityzer/dbsync`** (or “All repositories”).
+- The secret name exposed to the workflow must still be **`NPM_TOKEN`** (or you would need to change the workflow to match — this repo expects **`NPM_TOKEN`**).
+
+#### Option C — Environment secret
+
+If `NPM_TOKEN` is stored on a **GitHub Environment** (e.g. `production`), it is **not** available to the job unless you declare that environment on the job.
+
+1. In `.github/workflows/publish.yml`, on the `release` job, add:
+
+   ```yaml
+   environment: npm
+   ```
+
+   Use the **same** environment name where you created `NPM_TOKEN` (replace `npm` if yours differs).
+
+2. Commit and push, or re-run the workflow.
 
 ### 3. How It Works
 
