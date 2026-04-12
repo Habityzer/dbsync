@@ -18,6 +18,8 @@ pnpm dlx @habityzer/db-sync-tool --help
 
 The executable is **`dbsync`**. The package is published under the **Habityzer** org on npm (`@habityzer/…`).
 
+If **`pnpm add -g`** warns that the package **has no binaries**, pnpm is skipping the global link because the npm tarball did not ship `bin/dbsync.js` with the executable bit. Use **`npm install -g @habityzer/db-sync-tool`** (npm still wires up the CLI), **`pnpm dlx @habityzer/db-sync-tool`**, or upgrade once a release publishes the bin as executable.
+
 ## Configuration
 
 ### Environment (default)
