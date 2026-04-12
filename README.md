@@ -1,4 +1,4 @@
-# db-sync-tool
+# dbsync (`@habityzer/dbsync`)
 
 CLI for backing up and restoring **PostgreSQL** and **MySQL** databases with `.env` support, gzip compression, timestamped backups, listing, retention cleanup, and interactive restore.
 
@@ -11,14 +11,16 @@ CLI for backing up and restoring **PostgreSQL** and **MySQL** databases with `.e
 ## Install
 
 ```bash
-pnpm add -g @habityzer/db-sync-tool
+pnpm add -g @habityzer/dbsync
 # or
-pnpm dlx @habityzer/db-sync-tool --help
+pnpm dlx @habityzer/dbsync --help
 ```
 
-The executable is **`dbsync`**. The package is published under the **Habityzer** org on npm (`@habityzer/…`).
+The executable is **`dbsync`**. The package is published under the **Habityzer** org on npm (`@habityzer/dbsync`).
 
-If **`pnpm add -g`** warns that the package **has no binaries**, pnpm is skipping the global link because the npm tarball did not ship `bin/dbsync.js` with the executable bit. Use **`npm install -g @habityzer/db-sync-tool`** (npm still wires up the CLI), **`pnpm dlx @habityzer/db-sync-tool`**, or upgrade once a release publishes the bin as executable.
+If **`pnpm add -g`** warns that the package **has no binaries**, pnpm is skipping the global link because the npm tarball did not ship `bin/dbsync.js` with the executable bit. Use **`npm install -g @habityzer/dbsync`** (npm still wires up the CLI), **`pnpm dlx @habityzer/dbsync`**, or upgrade once a release publishes the bin as executable.
+
+The package was previously published as **`@habityzer/db-sync-tool`**. Switch installs to **`@habityzer/dbsync`**; after the first release under the new name you can run **`npm deprecate @habityzer/db-sync-tool "Renamed to @habityzer/dbsync"`**.
 
 ## Configuration
 

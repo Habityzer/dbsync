@@ -7,7 +7,7 @@ on:
       - master
 
 # Publishing uses npm Trusted Publishing (OIDC): no long-lived NPM_TOKEN is required.
-# One-time: link this repo + workflow on npm → @habityzer/db-sync-tool → Settings
+# One-time: link this repo + workflow on npm → @habityzer/dbsync → Settings
 # → Trusted publishing (see SETUP_NPM_PUBLISH.md). Optional legacy secret NPM_TOKEN if you
 # have not enabled Trusted Publishing yet.
 
