@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/Habityzer/dbsync/compare/v1.0.6...v1.1.0) (2026-04-12)
+
+
+### Features
+
+* add --admin-url option for privileged database access and enhance documentation ([a9b9c50](https://github.com/Habityzer/dbsync/commit/a9b9c50dabbcd9459e8bcd30dc323c44b08d6c9c))
+
 ## [1.0.6](https://github.com/Habityzer/dbsync/compare/v1.0.5...v1.0.6) (2026-04-12)
 
 
