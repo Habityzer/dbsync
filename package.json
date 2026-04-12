@@ -1,5 +1,5 @@
 {
-  "name": "db-sync-tool",
+  "name": "@habityzer/db-sync-tool",
   "version": "1.0.3",
   "description": "CLI for backing up and restoring PostgreSQL/MySQL databases with .env support, compression, and retention",
   "type": "module",
@@ -41,6 +41,9 @@
     "cli"
   ],
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Habityzer/dbsync.git"
