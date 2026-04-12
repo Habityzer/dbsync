@@ -1,6 +1,6 @@
 {
   "name": "@habityzer/dbsync",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "CLI for backing up and restoring PostgreSQL/MySQL databases with .env support, compression, and retention",
   "type": "module",
   "bin": {

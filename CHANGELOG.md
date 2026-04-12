@@ -1,3 +1,10 @@
+## [1.0.6](https://github.com/Habityzer/dbsync/compare/v1.0.5...v1.0.6) (2026-04-12)
+
+
+### Bug Fixes
+
+* update restore command options and improve README documentation ([12b6639](https://github.com/Habityzer/dbsync/commit/12b6639d0ef3cdb377838bace2527858427d897c))
+
 ## [1.0.5](https://github.com/Habityzer/dbsync/compare/v1.0.4...v1.0.5) (2026-04-12)
 
 
