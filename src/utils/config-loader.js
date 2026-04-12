@@ -10,6 +10,7 @@ const DEFAULT_NAMES = ['.db-sync.json', '.db-syncconfig.json'];
  * @property {number} [compressLevel]
  * @property {number} [keepLast]
  * @property {string} [timestampFormat]
+ * @property {string} [adminUrl] - PostgreSQL/MySQL: privileged URL for drop/recreate only (same host:port as DATABASE_URL)
  */
 
 /**

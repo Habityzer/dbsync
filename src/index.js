@@ -38,6 +38,10 @@ export async function runCli(argv) {
     .option('--env-file <path>', 'Path to .env file', '.env')
     .option('--env-var <name>', 'Environment variable for database URL', 'DATABASE_URL')
     .option('--config <path>', 'Path to .db-sync.json / .db-syncconfig.json')
+    .option(
+      '--admin-url <url>',
+      'PostgreSQL/MySQL: privileged URL for drop/recreate (same host:port as DATABASE_URL). Env: DBSYNC_ADMIN_URL'
+    )
     .option('-v, --verbose', 'Verbose logging', false);
 
   program

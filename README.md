@@ -66,7 +66,7 @@ Override path: `--config <path>`.
 
 ### Global options
 
-- `--env-file`, `--env-var`, `--config`, `-v/--verbose`, `-h/--help`, `-V/--version`
+- `--env-file`, `--env-var`, `--config`, `--admin-url`, `-v/--verbose`, `-h/--help`, `-V/--version`
 
 ### Export
 
@@ -78,6 +78,7 @@ Override path: `--config <path>`.
 
 By default the target database is **dropped and recreated**, then the backup is applied. The CLI prints this plan before asking for confirmation.
 
+- **`--admin-url` / `DBSYNC_ADMIN_URL` / `DATABASE_ADMIN_URL` / `.db-sync.json` `adminUrl`** — optional **privileged** connection used **only** for drop/recreate (terminate backends, `DROP DATABASE`, `CREATE DATABASE`). Must use the **same host and port** as `DATABASE_URL`; only **user and password** may differ. Use this when `DATABASE_URL` is an application user whose password is wrong for `psql`, or a role that cannot drop databases (e.g. `app` vs `postgres` superuser).
 - `--no-drop-before` — import into the existing database without dropping it (advanced)
 - PostgreSQL: **owner/privilege lines** in plain SQL dumps are skipped by default (portable restores). Use `--preserve-privileges` only if you need exact ACLs and matching roles on the server.
 - `-y, --yes` or `--force` — skip the confirmation prompt (same meaning)

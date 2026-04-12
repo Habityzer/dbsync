@@ -151,7 +151,11 @@ export async function dropPostgresDatabase(parsed) {
     });
     const [code] = await once(child, 'close');
     if (code !== 0) {
-      const hint = [stepLabel && `${stepLabel}: `, err.trim()].filter(Boolean).join('');
+      let hint = [stepLabel && `${stepLabel}: `, err.trim()].filter(Boolean).join('');
+      if (/password authentication failed|authentication failed/i.test(hint)) {
+        hint +=
+          '\nIf DATABASE_URL uses an app-only user, set DBSYNC_ADMIN_URL (or --admin-url) to a superuser on the same host:port.';
+      }
       throw new AppError('Failed to drop/recreate database', { suggestion: hint || undefined });
     }
   }

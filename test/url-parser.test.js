@@ -3,6 +3,7 @@ import {
   fixPostgresProtocol,
   stripNonEssentialQueryParams,
   parseDatabaseUrl,
+  withAdminCredentials,
 } from '../src/utils/url-parser.js';
 
 describe('url-parser', () => {
@@ -36,5 +37,26 @@ describe('url-parser', () => {
     const p = parseDatabaseUrl('mysql://root:secret@localhost:3306/mydb');
     expect(p.type).toBe('mysql');
     expect(p.database).toBe('mydb');
+  });
+
+  it('withAdminCredentials swaps login for same server/db', () => {
+    const target = parseDatabaseUrl(
+      'postgres://app:wrong@127.0.0.1:5434/flumi_prod'
+    );
+    const admin = parseDatabaseUrl(
+      'postgres://postgres:secret@127.0.0.1:5434/postgres'
+    );
+    const merged = withAdminCredentials(target, admin);
+    expect(merged.user).toBe('postgres');
+    expect(merged.password).toBe('secret');
+    expect(merged.database).toBe('flumi_prod');
+    expect(merged.host).toBe('127.0.0.1');
+    expect(merged.port).toBe(5434);
+  });
+
+  it('withAdminCredentials rejects different host', () => {
+    const target = parseDatabaseUrl('postgres://a:b@127.0.0.1:5432/db');
+    const admin = parseDatabaseUrl('postgres://x:y@127.0.0.2:5432/postgres');
+    expect(() => withAdminCredentials(target, admin)).toThrow(/same host/);
   });
 });
