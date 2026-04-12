@@ -16,7 +16,7 @@ This is the **default** for this repo. It uses short-lived OpenID Connect creden
 
 ### One-time setup on npmjs.com
 
-1. Open **[@habityzer/db-sync-tool → Package settings](https://www.npmjs.com/package/@habityzer/db-sync-tool/access)** (create the scoped package under the **Habityzer** npm org if needed; you need publish access on that org).
+1. Open **[@habityzer/dbsync → Package settings](https://www.npmjs.com/package/@habityzer/dbsync/access)** (create the scoped package under the **Habityzer** npm org if needed; you need publish access on that org). Trusted publishing is **per package**: if you already configured it for **`@habityzer/db-sync-tool`**, add the same **GitHub repository** and **`publish.yml`** workflow for **`@habityzer/dbsync`** (after the first publish, or create the package on npm first and configure it before CI runs).
 2. Find **Trusted publishing** and choose **GitHub Actions**.
 3. Set:
    - **Repository**: `Habityzer/dbsync` (owner/repo, case-sensitive).
