@@ -13,7 +13,11 @@ import { scanBackups, filterBackups } from '../utils/backup-scanner.js';
 import { AppError, BackupError } from '../utils/errors.js';
 import * as ui from '../utils/ui.js';
 import { confirm, ask } from '../utils/prompt.js';
-import { spawnPsqlRestore, dropPostgresDatabase } from '../adapters/postgres.js';
+import {
+  spawnPsqlRestore,
+  dropPostgresDatabase,
+  superuserOnlyExtensions,
+} from '../adapters/postgres.js';
 import { spawnMysqlRestore, dropMysqlDatabase } from '../adapters/mysql.js';
 import { createPostgresPrivilegeStripTransform } from '../utils/sql-owner-strip.js';
 
@@ -147,6 +151,11 @@ export async function runRestore(globalOpts, cmdOpts, fileArg) {
     }
   }
 
+  // A role that is not a superuser cannot CREATE EXTENSION pg_stat_statements & co.;
+  // with ON_ERROR_STOP the whole restore would stop there, so those are skipped.
+  const skipExtensions =
+    parsed.type === 'postgres' ? await superuserOnlyExtensions(parsed) : [];
+
   const masked = parsed.url.toString().replace(/:[^:@/]+@/, ':***@');
   ui.infoLine(`${ui.icons.spin} Restoring from ${filePath.split(/[/\\]/).pop()}...`);
   ui.infoLine(`${ui.icons.link} Connected to ${masked}`);
@@ -170,9 +179,14 @@ export async function runRestore(globalOpts, cmdOpts, fileArg) {
     stderr += c.toString();
   });
 
-  const privilegeStrip = stripPgPrivileges
-    ? createPostgresPrivilegeStripTransform({ stripGrants: true })
-    : null;
+  const privilegeStrip =
+    stripPgPrivileges || skipExtensions.length
+      ? createPostgresPrivilegeStripTransform({
+          stripOwners: stripPgPrivileges,
+          stripGrants: stripPgPrivileges,
+          skipExtensions,
+        })
+      : null;
 
   const t0 = Date.now();
   const closePromise = once(child, 'close');
@@ -197,6 +211,12 @@ export async function runRestore(globalOpts, cmdOpts, fileArg) {
     }
     const secs = ((Date.now() - t0) / 1000).toFixed(1);
     ui.success(`Restore completed successfully (${secs}s)`);
+    const skipped = [...(privilegeStrip?.stats.extensions ?? [])];
+    if (skipped.length) {
+      ui.warnLine(
+        `Skipped extension(s) ${skipped.join(', ')}: only a superuser can create them and '${parsed.user}' is not one.`
+      );
+    }
   } catch (e) {
     bar.stop();
     if (e instanceof AppError) {

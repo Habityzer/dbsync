@@ -82,6 +82,45 @@ export async function testPostgresConnection(parsed) {
 }
 
 /**
+ * Extensions the restoring role cannot create: superuser-only and not trusted
+ * (e.g. pg_stat_statements). Empty when the role is a superuser, or when the
+ * catalog cannot be read (the restore then behaves as before).
+ * @param {import('../utils/url-parser.js').ParsedDatabaseUrl} parsed
+ * @returns {Promise<string[]>}
+ */
+export async function superuserOnlyExtensions(parsed) {
+  const client = new pg.Client({
+    host: parsed.host,
+    port: parsed.port ?? 5432,
+    user: parsed.user,
+    password: parsed.password,
+    database: parsed.database || 'postgres',
+    ssl: sslOptionFromUrl(parsed),
+  });
+  try {
+    await client.connect();
+    const role = await client.query('SELECT rolsuper FROM pg_roles WHERE rolname = current_user');
+    if (role.rows[0]?.rolsuper !== false) return [];
+    let res;
+    try {
+      res = await client.query(
+        'SELECT DISTINCT name FROM pg_available_extension_versions WHERE superuser AND NOT trusted ORDER BY name'
+      );
+    } catch {
+      // PostgreSQL < 13 has no trusted extensions.
+      res = await client.query(
+        'SELECT DISTINCT name FROM pg_available_extension_versions WHERE superuser ORDER BY name'
+      );
+    }
+    return res.rows.map((r) => r.name);
+  } catch {
+    return [];
+  } finally {
+    await client.end().catch(() => {});
+  }
+}
+
+/**
  * @param {import('../utils/url-parser.js').ParsedDatabaseUrl} parsed
  */
 function sslOptionFromUrl(parsed) {

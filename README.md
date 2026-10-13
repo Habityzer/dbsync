@@ -80,7 +80,8 @@ By default the target database is **dropped and recreated**, then the backup is 
 
 - **`--admin-url` / `DBSYNC_ADMIN_URL` / `DATABASE_ADMIN_URL` / `.db-sync.json` `adminUrl`** — optional **privileged** connection used **only** for drop/recreate (terminate backends, `DROP DATABASE`, `CREATE DATABASE`). Must use the **same host and port** as `DATABASE_URL`; only **user and password** may differ. Use this when `DATABASE_URL` is an application user whose password is wrong for `psql`, or a role that cannot drop databases (e.g. `app` vs `postgres` superuser).
 - `--no-drop-before` — import into the existing database without dropping it (advanced)
-- PostgreSQL: **owner/privilege lines** in plain SQL dumps are skipped by default (portable restores). Use `--preserve-privileges` only if you need exact ACLs and matching roles on the server.
+- PostgreSQL: **owner/privilege lines** in plain SQL dumps are skipped by default (portable restores). Use `--preserve-privileges` only if you need exact ACLs and matching roles on the server. Only whole top-level statements (`ALTER … OWNER TO`, `GRANT`, `REVOKE`, `ALTER DEFAULT PRIVILEGES`, `REASSIGN OWNED`) are skipped; `COPY` data, quoted literals and function bodies pass through byte for byte.
+- PostgreSQL: when the restoring role is **not a superuser**, `CREATE EXTENSION` / `COMMENT ON EXTENSION` for superuser-only extensions (e.g. `pg_stat_statements`) are skipped with a warning instead of stopping the restore.
 - `-y, --yes` or `--force` — skip the confirmation prompt (same meaning)
 - `--dry-run` — validate backup (full gzip stream check for `.gz`)
 - `-i, --interactive` — pick backup from list
